@@ -1,0 +1,5 @@
+db-host                         : 127.0.0.1
+db-user                         : your_user
+db-password                     : your_password
+db-database                     : database_name
+db-debug                        : true
