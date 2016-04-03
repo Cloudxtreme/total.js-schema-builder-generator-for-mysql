@@ -2,6 +2,7 @@
 // Copyright Tomáš Novák <tomasnovak@tonova.sk>
 
 exports.id = 'SchemaGenerator';
+exports.version = '1.0.1';
 
 function SchemaGenerator(tableName, schemaName, fileName, directory) {
 	this.schema = {};
@@ -53,6 +54,7 @@ SchemaGenerator.prototype.getValidator = function(callback) {
 	var sql = DB();
 
 	var result = [];
+	var numValidated = 0;
 	sql.query('explain', 'EXPLAIN ' + this.table);
 
 	sql.exec(function(err, response) {
@@ -68,14 +70,21 @@ SchemaGenerator.prototype.getValidator = function(callback) {
 			if(required) {
 				template += '            case \'' + columnName + '\'\:\n';
 				template += '                ' + condition + '\n';
+				numValidated += 1;
 			}
 		});
+
+		if(numValidated === 0) {
+			callback('');
+			return;
+		}
 
 		result = '    schema.setValidate(function(name, value) {\n';
 		result += '        switch (name) {\n';
 		result += template;
 		result += '        }\n';
 		result += '    });\n';
+
 		callback(result);
 	});
 }
@@ -90,24 +99,42 @@ SchemaGenerator.prototype.getDefault = function(callback) {
 	sql.exec(function(err, response) {
 
 		var template = '';
-		response.explain.forEach(function(r) {
-			var columnName = r.Field;
-			var required = (r.Null == 'YES' ? true : false);
+		var numDefaults = 0;
 
-			var condition = (columnName.match(/email/i) !== null) ? 'return value.isEmail();' : 'return value.length > 0;';
-		 	
-			
-			if(required) {
+		response.explain.forEach(function(r) {
+
+			var columnName = r.Field;
+			var condition = '';
+			if(r.Default !== null)
+			{
+				switch(r.Default) {
+					case 'CURRENT_TIMESTAMP' :
+						condition = 'return new Date();';
+						break;
+					case '0000-00-00 00:00:00' :
+						condition = 'return new Date();';
+						break;
+					default :
+						condition = 'return ' + r.Default + ';';
+				}
 				template += '            case \'' + columnName + '\'\:\n';
 				template += '                ' + condition + '\n';
+
+				numDefaults += 1;
 			}
 		});
 
-		result = '    schema.setValidate(function(name, value) {\n';
+		if(numDefaults === 0) {
+			callback('');
+			return;
+		}
+
+		result = '    schema.setDefault(function(name, value) {\n';
 		result += '        switch (name) {\n';
 		result += template;
 		result += '        }\n';
 		result += '    });\n';
+
 		callback(result);
 	});
 }
@@ -128,6 +155,13 @@ SchemaGenerator.prototype.generate = function(callback) {
 	arr.push(function(next) {
 		self.getValidator(function(validator) {
 			template += validator + '\n';
+			next();
+		});
+	});
+
+	arr.push(function(next) {
+		self.getDefault(function(res) {
+			template += res + '\n';
 			template += '});';
 			next();
 		});
@@ -136,15 +170,12 @@ SchemaGenerator.prototype.generate = function(callback) {
 	arr.async(function() {
 
 		var fs = require('fs');
-		
-	    fs.writeFile('.' + self.directory + self.fileName + '.js', template, {flag: 'w'}, function(err) {
+	    fs.writeFile('.' + self.directory + self.fileName.toLowerCase() + '.js', template, {flag: 'w'}, function(err) {
 		    if(err) {
 		        callback(err);
 		    }
 			callback(SUCCESS());
 		});
-		
-
 		return;
 	});
 }
