@@ -34,6 +34,10 @@ generator.generate(function(callback) {
 	self.plain(callback);
 });
 ```
+
+__For updates follow me__:
+[Follow @tomee03](https://twitter.com/tomee03)
+
 ---
 MIT License
 2016 Copyright Tomáš Novák <tomasnovak@tonova.sk>
