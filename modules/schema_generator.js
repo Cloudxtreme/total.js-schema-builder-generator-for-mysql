@@ -115,7 +115,7 @@ SchemaGenerator.prototype.getDefault = function(callback) {
 						condition = 'return new Date();';
 						break;
 					default :
-						condition = 'return ' + r.Default + ';';
+						condition = 'return \'' + r.Default + '\';';
 				}
 				template += '            case \'' + columnName + '\'\:\n';
 				template += '                ' + condition + '\n';
