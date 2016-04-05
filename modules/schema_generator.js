@@ -22,7 +22,7 @@ SchemaGenerator.prototype.getSchema = function(callback) {
 	sql.exec(function(err, response) {
 		response.explain.forEach(function(r) {
 
-			var required = (r.Null == 'YES' ? ', true' : '');
+			var required = (r.Null !== 'YES' ? ', true' : '');
 			var inputType = r.Type;
 			var type = '';
 
@@ -62,7 +62,7 @@ SchemaGenerator.prototype.getValidator = function(callback) {
 		var template = '';
 		response.explain.forEach(function(r) {
 			var columnName = r.Field;
-			var required = (r.Null == 'YES' ? true : false);
+			var required = (r.Null !== 'YES' ? true : false);
 
 			var condition = (columnName.match(/email/i) !== null) ? 'return value.isEmail();' : 'return value.length > 0;';
 		 	
